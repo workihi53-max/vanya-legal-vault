@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ваня — локальный юридический ИИ</title>
+<style>
+  :root {
+    --bg: #F5F3EE;
+    --bg-head: #FBF9F4;
+    --card: #ECE6DA;
+    --card-soft: #E4DCCB;
+    --ink: #1F2A37;
+    --ink-muted: #5A6572;
+    --accent: #B4441F;
+    --accent-dark: #923616;
+    --border: #D8D2C4;
+    --red: #B3261E;
+    --red-bg: #F6E3E0;
+    --amber: #9C6B1E;
+    --amber-bg: #F4EAD6;
+    --green: #2E7D4F;
+    --green-bg: #E2EEE4;
+    --radius: 10px;
+    --focus: 0 0 0 3px rgba(180, 68, 31, 0.35);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans",
+            Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: light; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 16px;
+    line-height: 1.55;
+  }
+
+  /* --- шапка --- */
+  header {
+    background: var(--bg-head);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
+  .brand-mark {
+    flex: none;
+    width: 46px; height: 46px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #FFF7EC;
+    font-weight: 700;
+    font-size: 24px;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 2px 6px rgba(180, 68, 31, 0.35);
+  }
+  header h1 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+  .model-line { margin: 2px 0 0; font-size: 13.5px; color: var(--ink-muted); }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #fff;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .badge.offline { color: var(--green); border-color: #BFD5C4; background: var(--green-bg); }
+  .badge.offline .lock { font-size: 15px; }
+
+  /* --- сетка --- */
+  main {
+    display: grid;
+    grid-template-columns: 350px minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 26px 32px 48px;
+    align-items: start;
+  }
+  @media (max-width: 1020px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  /* --- карточки --- */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    margin: 0 0 4px;
+    font-size: 16px;
+    letter-spacing: 0.01em;
+  }
+  .card .desc { margin: 0 0 14px; font-size: 14px; color: var(--ink-muted); }
+  .col-left .card:last-child, .col-right .card:last-child { margin-bottom: 0; }
+
+  /* --- зона загрузки --- */
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    background: #F8F5EE;
+    padding: 26px 16px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--ink-muted);
+    font-size: 14.5px;
+    transition: border-color .15s, background .15s;
+    margin-bottom: 14px;
+  }
+  .dropzone:hover { border-color: var(--accent); }
+  .dropzone.dragover { border-color: var(--accent); background: #F3E7DA; }
+  .dropzone svg { display: block; margin: 0 auto 8px; color: var(--accent); }
+  .dropzone .strong { color: var(--ink); font-weight: 600; }
+
+  #file-list { list-style: none; margin: 0; padding: 0; }
+  #file-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-left: 4px solid transparent;
+    border-radius: 8px;
+    background: #F8F5EE;
+    margin-bottom: 6px;
+    cursor: pointer;
+    font-size: 14.5px;
+  }
+  #file-list li:hover { border-color: var(--border); }
+  #file-list li.selected {
+    border-color: #CBBFA9;
+    border-left-color: var(--accent);
+    background: #F3E7DA;
+  }
+  #file-list .fname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #file-list .fsize { flex: none; color: var(--ink-muted); font-size: 12.5px; }
+  .hint-empty { color: var(--ink-muted); font-size: 14px; margin: 4px 0 0; }
+
+  /* --- кнопки и поля --- */
+  button, .btn {
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #FFF7EC;
+    padding: 9px 18px;
+    cursor: pointer;
+    transition: background .12s, transform .06s;
+  }
+  button:hover { background: var(--accent-dark); }
+  button:active { transform: translateY(1px); }
+  button:disabled { background: #C9C2B2; border-color: #C9C2B2; cursor: not-allowed; }
+  .btn.secondary {
+    background: transparent; color: var(--accent); border-color: var(--accent);
+  }
+  .btn.secondary:hover { background: #F3E7DA; }
+  textarea {
+    width: 100%;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    background: #FBF9F4;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    resize: vertical;
+    min-height: 72px;
+  }
+  a, button, textarea, input, .dropzone, #file-list li {
+    outline: none;
+  }
+  a:focus-visible, button:focus-visible, textarea:focus-visible,
+  .dropzone:focus-visible, #file-list li:focus-visible {
+    box-shadow: var(--focus);
+    border-color: var(--accent);
+  }
+
+  /* --- результаты --- */
+  .result { margin-top: 14px; font-size: 14.5px; }
+  .result .error-box { margin: 0; }
+  .error-box {
+    background: var(--red-bg);
+    border: 1px solid #E4BBB5;
+    color: var(--red);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 10px 0;
+    font-size: 14px;
+  }
+  .notice {
+    background: var(--amber-bg);
+    border: 1px solid #E0CFA4;
+    color: var(--amber);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 10px 0;
+    font-size: 14px;
+  }
+  .ok-box {
+    background: var(--green-bg);
+    border: 1px solid #BCD3C1;
+    color: var(--green);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 10px 0;
+    font-size: 14px;
+  }
+  .fields { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .field-chip {
+    background: #FBF9F4;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 13px;
+  }
+  .field-chip b { color: var(--accent); font-weight: 600; }
+  .download-link {
+    display: inline-block;
+    margin-top: 8px;
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .risk-item {
+    background: #F8F5EE;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .risk-item.l-high { border-left-color: var(--red); }
+  .risk-item.l-mid  { border-left-color: var(--amber); }
+  .risk-item.l-low  { border-left-color: var(--green); }
+  .risk-item .r-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .risk-item .r-punkt { font-weight: 700; }
+  .level-badge {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-radius: 999px;
+    padding: 2px 10px;
+  }
+  .level-badge.high { background: var(--red-bg); color: var(--red); }
+  .level-badge.mid  { background: var(--amber-bg); color: var(--amber); }
+  .level-badge.low  { background: var(--green-bg); color: var(--green); }
+  .mode-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    border-radius: 999px;
+    padding: 3px 12px;
+    background: #F3E7DA;
+    border: 1px solid #D9C4AC;
+    color: var(--accent);
+  }
+  .src-line { font-size: 13.5px; color: var(--ink-muted); margin-bottom: 10px; }
+  .risk-item .r-text { margin: 2px 0; }
+  .risk-item .r-rec { color: var(--ink-muted); font-size: 13.5px; }
+  .answer {
+    background: #FBF9F4;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .selected-line { font-size: 13px; color: var(--ink-muted); margin: 0 0 10px; }
+  .selected-line b { color: var(--ink); }
+
+  /* --- чат --- */
+  #chat-log {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 460px;
+    overflow-y: auto;
+    padding: 4px 2px;
+    margin-bottom: 12px;
+  }
+  .bubble {
+    max-width: 85%;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14.5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .bubble.user {
+    align-self: flex-end;
+    background: var(--ink);
+    color: #F5F3EE;
+    border-bottom-right-radius: 4px;
+  }
+  .bubble.assistant {
+    align-self: flex-start;
+    background: #FBF9F4;
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+  .tool-block {
+    background: #E9E4D8;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    margin: 6px 0;
+    font-size: 13px;
+    color: var(--ink-muted);
+    max-width: 100%;
+  }
+  .tool-block .t-name { font-weight: 700; color: var(--ink); }
+  .tool-block .t-args, .tool-block .t-res {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    display: block;
+  }
+  .status-line { font-size: 12.5px; color: var(--ink-muted); font-style: italic; margin: 4px 2px 0; }
+  .chat-form { display: flex; gap: 10px; align-items: flex-end; }
+  .chat-form textarea { flex: 1; }
+  .chat-form button { flex: none; height: 44px; }
+
+  @media (max-width: 1020px) {
+    header { padding: 14px 18px; }
+    main { padding: 18px 18px 40px; }
+    .bubble { max-width: 95%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">В</div>
+    <div>
+      <h1>Ваня — локальный юридический ИИ</h1>
+      <p class="model-line" id="model-line">Модель: …</p>
+    </div>
+  </div>
+  <div class="badge offline" id="offline-badge"><span class="lock" aria-hidden="true">🔒</span><span id="badge-text">Офлайн-режим</span></div>
+</header>
+
+<main>
+  <!-- левая колонка: пакет документов -->
+  <aside class="col-left">
+    <section class="card">
+      <h2>Пакет документов</h2>
+      <p class="desc">Загрузите документы клиента: паспортные данные, реквизиты, проект договора.</p>
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Загрузить файлы">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
+        </svg>
+        <div><span class="strong">Перетащите файлы сюда</span><br>или нажмите, чтобы выбрать</div>
+      </div>
+      <input type="file" id="file-input" multiple hidden aria-hidden="true">
+      <div id="upload-status"></div>
+      <ul id="file-list"></ul>
+      <p class="hint-empty" id="files-hint">Файлов пока нет.</p>
+    </section>
+  </aside>
+
+  <!-- правая колонка: сценарии + чат -->
+  <div class="col-right">
+    <section class="card">
+      <h2>Заполнить договор</h2>
+      <p class="desc">Извлекает реквизиты из документов и заполняет шаблон договора оказания услуг. Основной сценарий: юрист скинул пакет документов — одно нажатие, и договор готов. Работает без модели.</p>
+      <p class="selected-line" id="sel-fill"></p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button id="btn-fill-package">Заполнить по всему пакету</button>
+        <button id="btn-fill" class="btn secondary">Заполнить договор</button>
+      </div>
+      <div class="result" id="fill-result"></div>
+    </section>
+
+    <section class="card">
+      <h2>Найти риски</h2>
+      <p class="desc">Анализирует договор и возвращает список рисков с уровнями и рекомендациями.</p>
+      <p class="selected-line" id="sel-risks"></p>
+      <button id="btn-risks">Найти риски</button>
+      <div class="result" id="risks-result"></div>
+    </section>
+
+    <section class="card">
+      <h2>Спросить по документу</h2>
+      <p class="desc">Задайте вопрос по содержимому выбранного документа — Ваня ответит на русском.</p>
+      <p class="selected-line" id="sel-ask"></p>
+      <textarea id="ask-question" placeholder="Например: какова сумма договора и кто исполнитель?"></textarea>
+      <div style="margin-top:10px"><button id="btn-ask">Спросить</button></div>
+      <div class="result" id="ask-result"></div>
+    </section>
+
+    <section class="card">
+      <h2>Диалог с Ваней</h2>
+      <p class="desc">Свободный разговор: Ваня сам решает, какие инструменты применить.</p>
+      <div id="chat-log"></div>
+      <div id="chat-status" class="status-line" hidden></div>
+      <form class="chat-form" id="chat-form">
+        <textarea id="chat-input" placeholder="Например: подготовь отчёт по всем документам" rows="2"></textarea>
+        <button type="submit" id="btn-chat">Отправить</button>
+      </form>
+    </section>
+  </div>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const state = { files: [], selected: null, chatHistory: [], busy: false };
+
+/* --- базовый fetch с русскими ошибками --- */
+async function api(path, opts) {
+  let res;
+  try {
+    res = await fetch(path, opts);
+  } catch (e) {
+    throw new Error("Нет связи с сервером: " + e.message);
+  }
+  if (!res.ok) {
+    let msg = "Ошибка запроса (" + res.status + ")";
+    try { const j = await res.json(); msg = j.detail || msg; } catch (_) {}
+    throw new Error(msg);
+  }
+  return res;
+}
+function showError(el, msg) {
+  el.innerHTML = '<div class="error-box"></div>';
+  el.firstChild.textContent = msg;
+}
+function clearResult(el) { el.innerHTML = ""; }
+
+/* --- здоровье / шапка --- */
+async function loadHealth() {
+  try {
+    const h = await (await api("/api/health")).json();
+    let line = "Модель: " + esc(h.model) + " • работает локально";
+    if (!h.ollama) line += " • Ollama не запущена";
+    if (h.ollama && !h.model_installed) line += " • модель не установлена";
+    $("model-line").textContent = line;
+    if (!h.offline) {
+      $("offline-badge").classList.remove("offline");
+      $("offline-badge").style.color = "var(--amber)";
+      $("offline-badge").style.borderColor = "#E0CFA4";
+      $("offline-badge").style.background = "var(--amber-bg)";
+      $("badge-text").textContent = "Режим отладки";
+      $("offline-badge").querySelector(".lock").hidden = true;
+    }
+  } catch (e) {
+    $("model-line").textContent = "Не удалось получить состояние сервера";
+  }
+}
+
+/* --- файлы --- */
+async function loadFiles() {
+  try {
+    const data = await (await api("/api/files")).json();
+    state.files = data.files || [];
+  } catch (e) {
+    showError($("upload-status"), e.message);
+    return;
+  }
+  renderFiles();
+}
+
+function renderFiles() {
+  const ul = $("file-list");
+  ul.innerHTML = "";
+  $("files-hint").hidden = state.files.length > 0;
+  for (const f of state.files) {
+    const li = document.createElement("li");
+    li.tabIndex = 0;
+    li.setAttribute("role", "button");
+    li.innerHTML =
+      '<span class="fname">' + esc(f.name) + '</span>' +
+      '<span class="fsize">' + esc(fmtSize(f.size)) + '</span>';
+    if (f.name === state.selected) li.classList.add("selected");
+    li.addEventListener("click", () => selectFile(f.name));
+    li.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectFile(f.name); }
+    });
+    ul.appendChild(li);
+  }
+  updateSelectedLines();
+}
+
+function fmtSize(n) {
+  n = Number(n) || 0;
+  if (n < 1024) return n + " Б";
+  if (n < 1048576) return (n / 1024).toFixed(1) + " КБ";
+  return (n / 1048576).toFixed(1) + " МБ";
+}
+
+function selectFile(name) {
+  state.selected = name;
+  renderFiles();
+}
+
+function updateSelectedLines() {
+  const txt = state.selected
+    ? "Выбран документ: <b>" + esc(state.selected) + "</b>"
+    : "Документ не выбран — «Заполнить договор» работает по выбранному файлу";
+  $("sel-fill").innerHTML = txt;
+  $("sel-risks").innerHTML = txt;
+  $("sel-ask").innerHTML = txt;
+  $("btn-fill").disabled = !state.selected;
+}
+
+function requireSelected(el) {
+  if (!state.selected) {
+    showError(el, "Сначала выберите файл в папке документов.");
+    return false;
+  }
+  return true;
+}
+
+/* --- загрузка файлов --- */
+async function uploadFiles(fileList) {
+  if (!fileList || fileList.length === 0) return;
+  const fd = new FormData();
+  for (const f of fileList) fd.append("files", f, f.name);
+  $("upload-status").innerHTML = '<div class="status-line">Загружаем…</div>';
+  try {
+    const r = await (await api("/api/upload", { method: "POST", body: fd })).json();
+    $("upload-status").innerHTML = '<div class="ok-box">Загружено: ' +
+      r.saved.map(esc).join(", ") + "</div>";
+    await loadFiles();
+  } catch (e) {
+    showError($("upload-status"), e.message);
+  }
+}
+
+const dz = $("dropzone");
+dz.addEventListener("click", () => $("file-input").click());
+dz.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file-input").click(); }
+});
+$("file-input").addEventListener("change", (e) => {
+  uploadFiles(e.target.files);
+  e.target.value = "";
+});
+["dragenter", "dragover"].forEach((t) =>
+  dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.add("dragover"); }));
+["dragleave", "drop"].forEach((t) =>
+  dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.remove("dragover"); }));
+dz.addEventListener("drop", (e) => {
+  uploadFiles(e.dataTransfer.files);
+});
+
+/* --- сценарии --- */
+async function runScenario(btn, url, body, render, out, needFile) {
+  if (needFile && !requireSelected(out)) return;
+  clearResult(out);
+  btn.disabled = true;
+  btn.textContent = "Выполняется…";
+  try {
+    const r = await api(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    render(data, out);
+  } catch (e) {
+    showError(out, e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = btn.dataset.label;
+  }
+}
+
+function renderFill(data, out) {
+  let html = "";
+  if (data.package_mode) {
+    html += '<div style="margin-bottom:10px"><span class="mode-badge">режим: весь пакет</span></div>';
+  }
+  if (data.sources && data.sources.length) {
+    html += '<div class="src-line">Использованы файлы: ' +
+      data.sources.map(esc).join(", ") + "</div>";
+  }
+  if (data.fields && Object.keys(data.fields).length) {
+    html += '<div class="fields">';
+    for (const [k, v] of Object.entries(data.fields)) {
+      html += '<span class="field-chip"><b>' + esc(k) + "</b>: " + esc(v) + "</span>";
+    }
+    html += "</div>";
+  }
+  if (data.missing && data.missing.length) {
+    html += '<div class="notice">Не найдены поля: ' + data.missing.map(esc).join(", ") + "</div>";
+  }
+  if (data.download_name) {
+    html += '<a class="download-link" href="/api/download/' +
+      encodeURIComponent(data.download_name) + '">Скачать договор</a>';
+  } else if (data.ok) {
+    html += '<div class="ok-box">Договор готов.</div>';
+  }
+  out.innerHTML = html || '<div class="ok-box">Готово.</div>';
+}
+
+function levelClass(level) {
+  const s = String(level || "").toLowerCase();
+  if (s.includes("высок") || s.includes("high")) return "high";
+  if (s.includes("сред") || s.includes("mid")) return "mid";
+  return "low";
+}
+function levelLabel(level) {
+  const s = String(level || "").toLowerCase();
+  if (s.includes("высок")) return "высокий";
+  if (s.includes("сред")) return "средний";
+  if (s.includes("низ")) return "низкий";
+  if (s.includes("high")) return "высокий";
+  if (s.includes("mid")) return "средний";
+  return "низкий";
+}
+
+function renderRisks(data, out) {
+  let html = "";
+  if (data.fallback) {
+    html += '<div class="notice">Модель недоступна — показан эвристический разбор.</div>';
+  }
+  if (data.summary) {
+    html += '<div class="answer">' + esc(data.summary) + "</div>";
+  }
+  const risks = data.risks || [];
+  if (!risks.length && !data.summary) {
+    out.innerHTML = '<div class="ok-box">Рисков не найдено.</div>';
+    return;
+  }
+  for (const r of risks) {
+    const cls = levelClass(r.level);
+    html += '<div class="risk-item l-' + (cls === "high" ? "high" : cls === "mid" ? "mid" : "low") + '">' +
+      '<div class="r-head"><span class="r-punkt">' + esc(r.punkt || "—") + "</span>" +
+      '<span class="level-badge ' + cls + '">' + esc(levelLabel(r.level)) + "</span></div>" +
+      (r.risk ? '<div class="r-text">' + esc(r.risk) + "</div>" : "") +
+      (r.recommendation ? '<div class="r-rec">Рекомендация: ' + esc(r.recommendation) + "</div>" : "") +
+      "</div>";
+  }
+  out.innerHTML = html;
+}
+
+function renderAsk(data, out) {
+  if (!data.answer) {
+    showError(out, "Пустой ответ модели.");
+    return;
+  }
+  out.innerHTML = '<div class="answer">' + esc(data.answer) + "</div>";
+}
+
+$("btn-fill").dataset.label = "Заполнить договор";
+$("btn-fill-package").dataset.label = "Заполнить по всему пакету";
+$("btn-risks").dataset.label = "Найти риски";
+$("btn-ask").dataset.label = "Спросить";
+
+$("btn-fill").addEventListener("click", () =>
+  runScenario($("btn-fill"), "/api/scenario/fill", { filename: state.selected },
+    renderFill, $("fill-result"), true));
+$("btn-fill-package").addEventListener("click", () =>
+  runScenario($("btn-fill-package"), "/api/scenario/fill", {},
+    renderFill, $("fill-result"), false));
+$("btn-risks").addEventListener("click", () =>
+  runScenario($("btn-risks"), "/api/scenario/risks", { filename: state.selected },
+    renderRisks, $("risks-result"), true));
+$("btn-ask").addEventListener("click", () => {
+  const q = $("ask-question").value.trim();
+  if (!q) { showError($("ask-result"), "Введите вопрос."); return; }
+  runScenario($("btn-ask"), "/api/scenario/ask", { filename: state.selected, question: q },
+    renderAsk, $("ask-result"), true);
+});
+
+/* --- чат (SSE) --- */
+function addBubble(role) {
+  const b = document.createElement("div");
+  b.className = "bubble " + role;
+  $("chat-log").appendChild(b);
+  $("chat-log").scrollTop = $("chat-log").scrollHeight;
+  return b;
+}
+function addToBubble(bubble, html) {
+  if (html) bubble.insertAdjacentHTML("beforeend", html);
+  $("chat-log").scrollTop = $("chat-log").scrollHeight;
+}
+function appendText(bubble, text) {
+  let span = bubble.querySelector(".stream");
+  if (!span) {
+    span = document.createElement("span");
+    span.className = "stream";
+    bubble.appendChild(span);
+  }
+  span.textContent += text;
+  $("chat-log").scrollTop = $("chat-log").scrollHeight;
+}
+function setStatus(msg) {
+  const el = $("chat-status");
+  el.hidden = !msg;
+  el.textContent = msg || "";
+}
+
+function toolBlock(d) {
+  const name = d.name || "инструмент";
+  const args = d.arguments && Object.keys(d.arguments).length
+    ? Object.entries(d.arguments).map(([k, v]) => k + "=" + String(v).slice(0, 60)).join(", ")
+    : "";
+  return '<div class="tool-block"><span class="t-name">🔧 ' + esc(name) + "</span>" +
+    (args ? '<span class="t-args">' + esc(args) + "</span>" : "") + "</div>";
+}
+function toolResultBlock(d) {
+  if (d.ok === false && d.error) {
+    return '<div class="tool-block"><span class="t-res">↳ ошибка: ' +
+      esc(String(d.error).slice(0, 140)) + "</span></div>";
+  }
+  let text = d.result ?? d.output ?? "";
+  if (text && typeof text === "object") text = JSON.stringify(text);
+  const short = String(text).replace(/\s+/g, " ").trim().slice(0, 140);
+  return '<div class="tool-block"><span class="t-res">↳ ' +
+    esc(short || "выполнено") + "</span></div>";
+}
+
+function handleEvent(ev, bubble) {
+  if (!ev) return;
+  const d = ev.data || {};
+  switch (ev.kind) {
+    case "status":
+      setStatus(d.message || d.status || "");
+      break;
+    case "tool_call":
+      addToBubble(bubble, toolBlock(d));
+      break;
+    case "tool_result":
+      addToBubble(bubble, toolResultBlock(d));
+      break;
+    case "token":
+      appendText(bubble, d.text ?? d.content ?? d.token ?? "");
+      break;
+    case "final":
+      setStatus("");
+      const fin = d.answer ?? d.content ?? d.message ?? "";
+      if (fin) { bubble.innerHTML = ""; addToBubble(bubble, esc(fin)); }
+      break;
+    case "error":
+      setStatus("");
+      addToBubble(bubble, '<div class="error-box">Ошибка: ' +
+        esc(d.message || "неизвестная ошибка модели") + "</div>");
+      break;
+  }
+}
+
+$("chat-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = $("chat-input");
+  const text = input.value.trim();
+  if (!text || state.busy) return;
+  state.busy = true;
+  $("btn-chat").disabled = true;
+  input.value = "";
+  addToBubble(addBubble("user"), esc(text));
+  state.chatHistory.push({ role: "user", content: text });
+  const bubble = addBubble("assistant");
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text, history: state.chatHistory }),
+    });
+    if (!res.ok || !res.body) {
+      let msg = "Ошибка запроса (" + res.status + ")";
+      try { const j = await res.json(); msg = j.detail || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf("\n\n")) >= 0) {
+        const chunk = buf.slice(0, idx);
+        buf = buf.slice(idx + 2);
+        const line = chunk.split("\n").find((l) => l.startsWith("data: "));
+        if (!line) continue;
+        let ev = null;
+        try { ev = JSON.parse(line.slice(6)); } catch (_) {
+          ev = { kind: "error", data: { message: "не удалось разобрать ответ сервера" } };
+        }
+        handleEvent(ev, bubble);
+      }
+    }
+  } catch (err) {
+    setStatus("");
+    addToBubble(bubble, '<div class="error-box">Ошибка: ' + esc(err.message) + "</div>");
+  } finally {
+    state.busy = false;
+    $("btn-chat").disabled = false;
+    setStatus("");
+    input.focus();
+  }
+});
+
+/* --- старт --- */
+loadHealth();
+loadFiles();
+</script>
+</body>
+</html>
